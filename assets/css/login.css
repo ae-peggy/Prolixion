@@ -1,0 +1,70 @@
+body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background-repeat: no-repeat;
+    background-attachment: fixed;  
+    background-size:cover;
+    
+}
+
+h1{
+    position: relative;
+    z-index: 3;
+    text-align: center;
+    font-family: Candara;
+    color: white;        
+    margin-top: 50px; 
+    font-size: 45px;   
+}
+form {
+    height: auto;
+    width: auto;
+    color: floralwhite;
+    text-align: center;
+    background-color: rgba(0, 0, 0, 0.5); 
+    backdrop-filter: blur(10px);
+    margin-top: 120px;
+    margin-left: 30%;
+    margin-right: 25%;
+    padding-top: 5px;
+    padding-bottom: 70px;
+    border-radius: 15px;
+    position: relative;
+    z-index: 2;
+    font-family: Candara;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+
+#myVideo {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    min-width: 100%;
+    min-height: 100%;
+    z-index: 1;
+}
+
+
+@font-face {
+    font-family: Candara;
+    src: url('/portfolio_b/assets/font/candara-light.ttf') format('truetype');
+}
+
+h2 {
+    color: rgb(255, 255, 255);
+    text-align: center;
+    font-family: Candara;
+    font-size: 35px;
+} 
+
+input[type="email"], input[type="password"], input[type="text"] {
+    width: 25%;
+    padding: 7px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-sizing: border-box;
+    color: rgb(42, 42, 42);
+}
