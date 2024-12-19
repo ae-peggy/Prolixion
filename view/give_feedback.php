@@ -2,6 +2,15 @@
 session_start();
 require_once '../db/database.php';
 
+// Create a custom error handler
+function myErrorHandler($errno, $errstr, $errfile, $errline) {
+    $error_message = date("[Y-m-d H:i:s]") . " Error: [$errno] $errstr in $errfile on line $errline\n";
+    error_log($error_message, 3, "../error.log");
+}
+set_error_handler("myErrorHandler");
+
+// Also log any database errors
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 // Get user ID from URL
 $portfolio_user_id = isset($_GET['user']) ? (int)$_GET['user'] : 0;
 
@@ -10,7 +19,7 @@ if (!$portfolio_user_id) {
 }
 
 // Fetch user details
-$stmt = $conn->prepare("SELECT fname, lname FROM users WHERE user_id = ?");
+$stmt = $conn->prepare("SELECT fname, lname FROM user WHERE user_id = ?");
 $stmt->bind_param("i", $portfolio_user_id);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -30,18 +39,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($feedback_text)) {
         $error = "Please provide feedback text.";
     } else {
-        $stmt = $conn->prepare("INSERT INTO feedback (user_id, reviewer_id, feedback_text, rating) VALUES (?, ?, ?, ?)");
-        $stmt->bind_param("iisi", $portfolio_user_id, $reviewer_id, $feedback_text, $rating);
-        
-        if ($stmt->execute()) {
+        try {
+            $stmt = $conn->prepare("
+            INSERT INTO feedback (user_id, reviewer_id, feedback_text, rating, created_at) 
+            VALUES (?, NULL, ?, ?, NOW())
+            ");
+            
+            $stmt->bind_param("isi", $portfolio_user_id, $feedback_text, $rating);
+            $stmt->execute();
             $success = "Thank you! Your feedback has been submitted successfully.";
-        } else {
-            $error = "Error submitting feedback. Please try again.";
-        }
-        
-        // Close the statement if it exists
-        if (isset($stmt) && $stmt instanceof mysqli_stmt) {
-            $stmt->close();
+            
+        } catch (Exception $e) {
+            die("Error: " . $e->getMessage());
         }
     }
 }
@@ -54,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title>Give Feedback - Portfolio Builder</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
-    <link href="/portfolio_b/assets/css/give_feedback.css?v=<?php echo time(); ?>" rel="stylesheet">
+    <link href="../assets/css/give_feedback.css?v=<?php echo time(); ?>" rel="stylesheet">
 </head>
 <body>
     <video autoplay muted loop id="myVideo">
@@ -103,7 +112,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <label for="rating">Rating:</label>
                     <div class="star-rating">
                         <?php for($i = 5; $i >= 1; $i--): ?>
-                            <input type="radio" id="star<?php echo $i; ?>" name="rating" value="<?php echo $i; ?>">
+                            <!-- Ensure the radio button is selected after submission -->
+                            <input type="radio" id="star<?php echo $i; ?>" name="rating" value="<?php echo $i; ?>" 
+                                <?php if (isset($_POST['rating']) && $_POST['rating'] == $i) echo 'checked'; ?>
+                            >
                             <label for="star<?php echo $i; ?>">★</label>
                         <?php endfor; ?>
                     </div>
@@ -116,6 +128,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 <button type="submit" class="submit-btn">Submit Feedback</button>
             </form>
+
 
             <div class="preview-link">
                 <?php 
@@ -139,7 +152,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->close();
 
                 if ($latest_resume) {
-                    echo '<a href="preview.php?resume_id=' . htmlspecialchars($latest_resume['resume_id']) . '" target="_blank">View Portfolio</a>';
+                    echo '<a href="../view/preview.php?resume_id=' . htmlspecialchars($latest_resume['resume_id']) . '" target="_blank">View Portfolio</a>';
                 } else {
                     echo '<p>No portfolio available to view.</p>';
                 }

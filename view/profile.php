@@ -2,31 +2,93 @@
 session_start();
 require_once '../db/database.php';
 
-// Fetch user data if available
-$userData = [];
-$socialProfiles = [];
-if (isset($_SESSION['user_id'])) {
+if (isset($_POST['update_profile'])) {
     $userId = $_SESSION['user_id'];
-    
-    // Fetch user data
-    $query = "SELECT * FROM users WHERE user_id = ?";
-    $stmt = $conn->prepare($query);
-    $stmt->bind_param("i", $userId);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $userData = $result->fetch_assoc();
-    
-    // Fetch social profiles
-    $query = "SELECT platform, profile_url FROM social_profiles WHERE user_id = ?";
-    $stmt = $conn->prepare($query);
-    $stmt->bind_param("i", $userId);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    while ($row = $result->fetch_assoc()) {
-        $socialProfiles[$row['platform']] = $row['profile_url'];
+    $uploadDir = '../uploads/'; // Directly use the uploads folder
+
+    // Ensure upload directory exists
+    if (!file_exists($uploadDir)) {
+        mkdir($uploadDir, 0777, true);
     }
+
+    $profilePictureUrl = '';
+    if (isset($_FILES['profile_picture']) && $_FILES['profile_picture']['error'] == 0) {
+        $uploadFile = $uploadDir . basename($_FILES['profile_picture']['name']);
+        $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif'];
+        $fileExtension = strtolower(pathinfo($_FILES['profile_picture']['name'], PATHINFO_EXTENSION));
+        
+        // Validate file type and move the uploaded file
+        if (in_array($fileExtension, $allowedExtensions)) {
+            if (move_uploaded_file($_FILES['profile_picture']['tmp_name'], $uploadFile)) {
+                $profilePictureUrl = str_replace('../', '', $uploadFile); // Use relative path
+            } else {
+                $_SESSION['error'] = "Failed to move the uploaded file.";
+                header("Location: ../view/profile.php");
+                exit;
+            }
+        } else {
+            $_SESSION['error'] = "Invalid file type. Allowed types: " . implode(', ', $allowedExtensions);
+            header("Location: ../view/profile.php");
+            exit;
+        }
+    }
+
+    // Update database with bio and profile picture (if available)
+    $bio = isset($_POST['bio']) ? htmlspecialchars($_POST['bio'], ENT_QUOTES, 'UTF-8') : '';
+
+    if (!empty($profilePictureUrl)) {
+        $query = "UPDATE user SET bio = ?, profile_picture = ? WHERE user_id = ?";
+        $stmt = $conn->prepare($query);
+        $stmt->bind_param("ssi", $bio, $profilePictureUrl, $userId);
+    } else {
+        $query = "UPDATE user SET bio = ? WHERE user_id = ?";
+        $stmt = $conn->prepare($query);
+        $stmt->bind_param("si", $bio, $userId);
+    }
+
+    if ($stmt->execute()) {
+        $_SESSION['success'] = "Profile updated successfully.";
+    } else {
+        $_SESSION['error'] = "Failed to update the profile.";
+    }
+
+    // Redirect back to profile page
+    header("Location: ../view/profile.php");
+    exit;
+}
+
+if (isset($_POST['update_social'])) {
+    $userId = $_SESSION['user_id'];
+
+    $socialProfiles = [
+        'linkedin' => $_POST['linkedin_url'] ?? '',
+        'github' => $_POST['github_url'] ?? '',
+        'twitter' => $_POST['twitter_url'] ?? '',
+        'instagram' => $_POST['instagram_url'] ?? '',
+    ];
+
+    // Remove old entries for this user
+    $query = "DELETE FROM social_profiles WHERE user_id = ?";
+    $stmt = $conn->prepare($query);
+    $stmt->bind_param("i", $userId);
+    $stmt->execute();
+
+    // Insert updated data
+    $query = "INSERT INTO social_profiles (user_id, platform, profile_url) VALUES (?, ?, ?)";
+    $stmt = $conn->prepare($query);
+    foreach ($socialProfiles as $platform => $url) {
+        if (!empty($url)) {
+            $stmt->bind_param("iss", $userId, $platform, $url);
+            $stmt->execute();
+        }
+    }
+
+    $_SESSION['success'] = "Social profiles updated successfully.";
+    header("Location: ../view/profile.php");
+    exit;
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -34,7 +96,7 @@ if (isset($_SESSION['user_id'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Profile</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
-    <link rel="stylesheet" href="/portfolio_b/assets/css/profile.css?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="../assets/css/profile.css?v=<?php echo time(); ?>">
 </head>
 <body>
     <video autoplay muted loop id="myVideo">
@@ -59,8 +121,8 @@ if (isset($_SESSION['user_id'])) {
     <div class="main-content">
         <section class="profile-section">
             <div class="profile-picture-container">
-                <img src="<?php echo $userData['profile_picture']; ?>" 
-                     alt="Profile Picture" class="profile-picture" id="profile-preview">
+                <img src="<?php echo !empty($userData['profile_picture']) ? '../' . htmlspecialchars($userData['profile_picture']) : '../assets/images/default-profile.png'; ?>" 
+                alt="Profile Picture" class="profile-picture" id="profile-preview">
             </div>
 
             <h2>Personal Information</h2>

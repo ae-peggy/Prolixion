@@ -17,8 +17,8 @@ $sql = "CREATE TABLE IF NOT EXISTS feedback (
     feedback_text TEXT NOT NULL,
     rating INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(user_id),
-    FOREIGN KEY (reviewer_id) REFERENCES users(user_id)
+    FOREIGN KEY (user_id) REFERENCES user(user_id),
+    FOREIGN KEY (reviewer_id) REFERENCES user(user_id)
 )";
 
 $conn->query($sql);
@@ -27,7 +27,7 @@ $conn->query($sql);
 $stmt = $conn->prepare("
     SELECT f.*, u.fname, u.lname 
     FROM feedback f 
-    LEFT JOIN users u ON f.reviewer_id = u.user_id 
+    LEFT JOIN user u ON f.reviewer_id = u.user_id 
     WHERE f.user_id = ? 
     ORDER BY f.created_at DESC
 ");
@@ -37,8 +37,13 @@ $result = $stmt->get_result();
 $feedbacks = $result->fetch_all(MYSQLI_ASSOC);
 $stmt->close();
 
-// Generate unique share link
-$shareLink = "//" . $_SERVER['HTTP_HOST'] . "/portfolio_b/view/give_feedback.php?user=" . $user_id;
+
+
+// Generate the absolute share link
+$host = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? "https" : "http") . "://" . $_SERVER['HTTP_HOST'];
+$shareLink = $host . "/~elorm.ameyibor/portfolio_b/view/give_feedback.php?user=" . urlencode($user_id);
+
+
 
 $conn->close();
 ?>
@@ -50,7 +55,7 @@ $conn->close();
     <title>Portfolio Feedback</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link href="/portfolio_b/assets/css/feedback.css?v=<?php echo time(); ?>" rel="stylesheet">
+    <link href="../assets/css/feedback.css?v=<?php echo time(); ?>" rel="stylesheet">
 </head>
 <body>
     <video autoplay muted loop id="myVideo">

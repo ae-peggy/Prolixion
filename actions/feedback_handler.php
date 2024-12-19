@@ -25,7 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $conn->prepare("
             SELECT f.*, u.fname, u.lname 
             FROM feedback f 
-            JOIN users u ON f.reviewer_id = u.user_id 
+            JOIN user u ON f.reviewer_id = u.user_id 
             WHERE f.feedback_id = LAST_INSERT_ID()
         ");
         $stmt->execute();

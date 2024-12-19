@@ -5,10 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign Up</title>
-    <link rel="stylesheet" href="/portfolio_b/assets/css/login.css?v=<?php echo time(); ?>">
+    <link rel="stylesheet" href="../assets/css/login.css?v=<?php echo time(); ?>">
 </head>
 <body>
-    <form id="signup-form" method="post" action="../actions/signuphandler.php">
+    <form id="signup-form" method="post" action="../actions/signup_handler.php">
         <h1>✺Welcome To Prolixion✺</h1>
         <h2>Sign Up</h2>
 
@@ -31,7 +31,7 @@
         <label for="password">Password:</label>
         <input type="password" id="password" name="password" required><br><br>
         <button type="submit">Sign Up</button>
-        <p>Already have an account? <a href="..assets/images//view/login.php">Login here</a></p>
+        <p>Already have an account? <a href="../view/login.php">Login here</a></p>
     </form>
     
 
